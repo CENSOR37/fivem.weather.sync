@@ -11,6 +11,9 @@ config.weatherIntervalInSec = 3600 -- 1 hours
 -- how fast weather will change, 0 is instantly
 config.weatherInterpolationSpeedInMs = 128.0
 
+-- startup time settings
+config.startUpTime = { hour = 12, min = 0 }
+
 -- weather will change in order of this list
 config.availableWeathers = {
     "CLEAR",

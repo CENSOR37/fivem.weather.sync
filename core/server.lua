@@ -75,3 +75,7 @@ end
 
 RegisterCommand("time.set", command_time_set, false)
 RegisterCommand("time.freeze", command_time_freeze, false)
+
+local start_hour = config.startUpTime.hour or 12
+local start_min = config.startUpTime.min or 0
+set_time(start_hour, start_min)
