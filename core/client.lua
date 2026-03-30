@@ -6,11 +6,15 @@ local NetworkOverrideClockTime = NetworkOverrideClockTime
 local ClearWeatherTypePersist = ClearWeatherTypePersist
 local SetWeatherTypeTransition = SetWeatherTypeTransition
 
-local GAME_DAY_IN_MS <const> = config.gameDayInSec * 1000
+local CYCLE_TOTAL_MS, CYCLE_SEGMENTS = BuildCycleData(config.gameTimeCycles)
 local WEATHER_INTERVAL_IN_MS <const> = config.weatherIntervalInSec * 1000
 local WEATHER_MAX_INDEX <const> = #config.availableWeathers
 local WEATHER_INTERPOLATION_SPEED <const> = math.min(config.weatherInterpolationSpeedInMs, WEATHER_INTERVAL_IN_MS)
-local LOOP_INTERVAL <const> = math.max(math.min(config.gameDayInSec, config.weatherIntervalInSec) * 0.05, 4)
+local min_cycle_sec = math.huge
+for _, c in ipairs(config.gameTimeCycles) do
+    if c.duration < min_cycle_sec then min_cycle_sec = c.duration end
+end
+local LOOP_INTERVAL = math.max(math.min(min_cycle_sec, config.weatherIntervalInSec) * 0.05, 4)
 local GAME_WEATHERS <const> = {
     CLEAR = 0,
     EXTRASUNNY = 1,
@@ -29,7 +33,7 @@ local GAME_WEATHERS <const> = {
     NEUTRAL = 14,
 }
 
-assert(GAME_DAY_IN_MS > 0, "Invalid game day length")
+assert(CYCLE_TOTAL_MS > 0, "Invalid game day length")
 assert(WEATHER_INTERVAL_IN_MS > 0, "Invalid weather interval")
 assert(WEATHER_MAX_INDEX > 0, "No weather available")
 
@@ -59,12 +63,12 @@ end
 local function sync()
     local net_time = TIMESYNC_INFO[TIMESYNC_ENUM.IS_TIME_FREEZED] and 0 or GetNetworkTime()
 
-    local day_progress = (net_time % GAME_DAY_IN_MS) / GAME_DAY_IN_MS
+    local game_min = NetTimeToGameMin(net_time, CYCLE_TOTAL_MS, CYCLE_SEGMENTS)
 
     local ms_offset = TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_ROUND] or 0
     ms_offset += TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_DAY] or 0
 
-    local ms_of_day = day_progress * 86400000 + ms_offset
+    local ms_of_day = game_min * 60000 + ms_offset
     local sec_of_day = ms_of_day / 1000
     local min_of_day = sec_of_day / 60
     local hour_of_day = min_of_day / 60

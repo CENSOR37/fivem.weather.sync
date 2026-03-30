@@ -1,7 +1,7 @@
 -- TODO: Implement a command that allow to set game time and weather
 -- Is it even gonna happen i have no idea lmao
 
-local GAME_DAY_IN_MS <const> = config.gameDayInSec * 1000
+local CYCLE_TOTAL_MS, CYCLE_SEGMENTS = BuildCycleData(config.gameTimeCycles)
 
 function math.clamp(val, lower, upper)                    -- credit overextended, https://love2d.org/forums/viewtopic.php?t=1856
     if lower > upper then lower, upper = upper, lower end -- swap if boundaries supplied the wrong way
@@ -23,9 +23,9 @@ local function set_time(hour, minute)
     minute = math.clamp(minute, 0, 59)
 
     local now_ms = TIMESYNC_INFO[TIMESYNC_ENUM.IS_TIME_FREEZED] and 0 or GetGameTimer()
-    local day_progress = (now_ms % GAME_DAY_IN_MS) / GAME_DAY_IN_MS
-    local ms_until_midnight = math.clamp(1.0 - day_progress, 0.0, 1.0) * 86400000
-    local ms_midnight_to_settime = (hour * 3600 + minute * 60) * 1000
+    local game_min = NetTimeToGameMin(now_ms, CYCLE_TOTAL_MS, CYCLE_SEGMENTS)
+    local ms_until_midnight = (1440 - game_min % 1440) * 60000
+    local ms_midnight_to_settime = (hour * 60 + minute) * 60000
 
     TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_ROUND] = ms_until_midnight
     TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_DAY] = ms_midnight_to_settime
@@ -38,14 +38,13 @@ local function toggle_time_freeze(new_state)
 
     local net_time = TIMESYNC_INFO[TIMESYNC_ENUM.IS_TIME_FREEZED] and 0 or GetGameTimer()
 
-    local day_progress = (net_time % GAME_DAY_IN_MS) / GAME_DAY_IN_MS
+    local game_min = NetTimeToGameMin(net_time, CYCLE_TOTAL_MS, CYCLE_SEGMENTS)
 
     local ms_offset = TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_ROUND] or 0
     ms_offset += TIMESYNC_INFO[TIMESYNC_ENUM.TIME_OFFSET_DAY] or 0
 
-    local ms_of_day = day_progress * 86400000 + ms_offset
-    local sec_of_day = ms_of_day / 1000
-    local min_of_day = sec_of_day / 60
+    local ms_of_day = game_min * 60000 + ms_offset
+    local min_of_day = ms_of_day / 60000
     local hour_of_day = min_of_day / 60
 
     local clock_hour = math.floor(hour_of_day) % 24

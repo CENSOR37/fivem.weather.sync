@@ -2,8 +2,10 @@ rawset(_ENV, "config", {}) -- stop linter from bitching
 
 config.debug = false
 
--- how long in game day in seconds
-config.gameDayInSec = 2880 -- 48 minutes, same as GTA Online
+config.gameTimeCycles = {
+    { hh = 6,  mm = 0, duration = 1920 }, -- day:   06:00→19:00, 32 min real
+    { hh = 19, mm = 0, duration = 960 },  -- night: 19:00→06:00, 16 min real
+}
 
 -- how often weather will change
 config.weatherIntervalInSec = 3600 -- 1 hours
